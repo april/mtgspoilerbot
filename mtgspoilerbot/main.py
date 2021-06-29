@@ -8,9 +8,9 @@ from .twitter import get_recent_tweets_text, update_status, upload_image
 from .utils import chunk
 
 # how many of the most recent scryfall spoiler posts to look at
-LOOKBACK_COUNT = 160
+LOOKBACK_COUNT = 16
 MODE = environ.get("MODE", "development")
-QUERY = "order:spoiled has:imagedata new:art -is:extra -!Plains -!Island -!Swamp -!Mountain -!Forest"
+QUERY = "order:spoiled has:imagedata -is:extra -!Plains -!Island -!Swamp -!Mountain -!Forest"
 
 
 if __name__ == '__main__':
@@ -19,13 +19,30 @@ if __name__ == '__main__':
     recent_text = get_recent_tweets_text()
 
     # filter out anything that appears in our most recent timeline
-    results = [result for result in results if f"{result['name']}\n" not in recent_text]
+    results = [result for result in results if f"{result['name']}" not in recent_text]
+
+    # for each card, if it has a quotation mark in the name, mark it as non-English
+    for result in results:
+        if '"' in result["name"]:
+            result["lang"] = "funny"
 
     print(f"{len(list(results))} remaining")
-    # split it into chunks of four
-    results = chunk(results, 4)
 
-    for cardset in results:
+    # split it into chunks of four
+
+
+    # results = chunk(results, 4)
+
+    while results:
+        # each non-English name reduces the number of cards we can post by one, minimum of two
+        num_non_english = sum([True if card["lang"] != "en" else False for card in results[0:4]])
+        num_cards = max(4 - num_non_english, 2)
+
+        cardset = results[0:num_cards]
+        del results[0:num_cards]
+
+
+
         # build the tweet text
         text = ""
 
@@ -36,14 +53,20 @@ if __name__ == '__main__':
             artist = get_artist_handle(artist)
 
             preview_uri = card.get("preview", {}).get("source_uri")
-            preview_uri = f"\n - 🔗: {preview_uri.split('?')[0]}?utm_source=mtgspoilerbot" if preview_uri else None
+            preview_uri = f"\n🔗: {preview_uri.split('?')[0]}" if preview_uri else None
 
             scryfall_uri = card.get("scryfall_uri")
-            scryfall_uri = f"\n - 🔗: {scryfall_uri.split('?')[0]}?utm_source=mtgspoilerbot"
+            scryfall_uri = f"\n{'💫' if preview_uri else '🔗'}: {scryfall_uri.split('?')[0]}?utm_source=mtgspoilerbot"
 
-            uri = preview_uri if preview_uri is not None else scryfall_uri
+            if preview_uri and card["lang"] != "en":
+                uri = preview_uri + scryfall_uri
+            elif preview_uri:
+                uri = preview_uri
+            else:
+                uri = scryfall_uri
 
-            text += f"{name}\n - 🎨: {artist}{uri}\n\n"
+            # text += f"{name}\n - 🎨: {artist}{uri}\n\n"
+            text += f"{name} (🎨: {artist}){uri}\n\n"
 
         text.strip()
 
