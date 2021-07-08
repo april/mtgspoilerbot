@@ -19,7 +19,7 @@ if __name__ == '__main__':
     recent_text = get_recent_tweets_text()
 
     # filter out anything that appears in our most recent timeline
-    results = [result for result in results if f"{result['name']}" not in recent_text]
+    results = [result for result in results if result['name'].replace('"', "") not in recent_text]
 
     # for each card, if it has a quotation mark in the name, mark it as non-English
     for result in results:
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     while results:
         # each non-English name reduces the number of cards we can post by one, minimum of two
         num_non_english = sum([True if card["lang"] != "en" else False for card in results[0:4]])
-        num_cards = max(4 - num_non_english, 2)
+        num_cards = max(4 - num_non_english, 3)
 
         cardset = results[0:num_cards]
         del results[0:num_cards]
@@ -53,7 +53,7 @@ if __name__ == '__main__':
             artist = get_artist_handle(artist)
 
             preview_uri = card.get("preview", {}).get("source_uri")
-            preview_uri = f"\n🔗: {preview_uri.split('?')[0]}" if preview_uri else None
+            preview_uri = f"\n🔗: {preview_uri}" if preview_uri else None
 
             scryfall_uri = card.get("scryfall_uri")
             scryfall_uri = f"\n{'💫' if preview_uri else '🔗'}: {scryfall_uri.split('?')[0]}?utm_source=mtgspoilerbot"
@@ -68,11 +68,15 @@ if __name__ == '__main__':
             # text += f"{name}\n - 🎨: {artist}{uri}\n\n"
             text += f"{name} (🎨: {artist}){uri}\n\n"
 
-        text.strip()
+        text = text.strip()
 
+        # when run manually
         if MODE != "production":
             print(text)
-            input("proceed? ")
+
+            answer = input("Proceed? ")
+            if not answer or answer[0].lower() != "y":
+                exit()
 
         # then, upload the images
         media_ids = []
@@ -89,8 +93,17 @@ if __name__ == '__main__':
                 media_ids.append(upload_image(filename, png))
 
 
-        # now, post it to Twitter
-        update_status(text, media_ids)
+        # now, post it to Twitter, making it shorter if necessary
+        try:
+            update_status(text, media_ids)
+        except:
+            text = text.split('\n\n')
+            text.pop()
+            text = '\n\n'.join(text)
+
+            media_ids.pop()
+
+            update_status(text, media_ids)
 
         # stop at one post unless in production
         if MODE != "production":
