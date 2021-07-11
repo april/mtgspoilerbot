@@ -29,10 +29,6 @@ if __name__ == '__main__':
     print(f"{len(list(results))} remaining")
 
     # split it into chunks of four
-
-
-    # results = chunk(results, 4)
-
     while results:
         # each non-English name reduces the number of cards we can post by one, minimum of two
         num_non_english = sum([True if card["lang"] != "en" else False for card in results[0:4]])
@@ -105,6 +101,5 @@ if __name__ == '__main__':
 
             update_status(text, media_ids)
 
-        # stop at one post unless in production
-        if MODE != "production":
-            exit()
+        # stop at one post, since prod now runs every 15 minutes
+        exit()
