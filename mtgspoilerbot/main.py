@@ -5,7 +5,6 @@ import requests
 from os import environ
 from .artist import get_artist_handle
 from .twitter import get_recent_tweets_text, update_status, upload_image
-from .utils import chunk
 
 # how many of the most recent scryfall spoiler posts to look at
 LOOKBACK_COUNT = 16
@@ -19,7 +18,7 @@ if __name__ == '__main__':
     recent_text = get_recent_tweets_text()
 
     # filter out anything that appears in our most recent timeline
-    results = [result for result in results if result['name'].replace('"', "") not in recent_text]
+    results = [result for result in results if result['name'].split(" // ")[0].replace('"', "") not in recent_text]
 
     # for each card, if it has a quotation mark in the name, mark it as non-English
     for result in results:
@@ -36,8 +35,6 @@ if __name__ == '__main__':
 
         cardset = results[0:num_cards]
         del results[0:num_cards]
-
-
 
         # build the tweet text
         text = ""
