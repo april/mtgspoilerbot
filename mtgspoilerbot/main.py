@@ -18,7 +18,11 @@ if __name__ == '__main__':
     recent_text = get_recent_tweets_text()
 
     # filter out anything that appears in our most recent timeline
-    results = [result for result in results if result['name'].split(" // ")[0].replace('"', "") not in recent_text.replace("&amp;", "&")]
+    results = [result for result in results if result['name'].split(" // ")[0].replace('"', "") not in
+               recent_text
+                   .replace("&amp;", "&")
+                   .replace('"', "")
+               ]
 
     # for each card, if it has a quotation mark in the name, mark it as non-English
     for result in results:
